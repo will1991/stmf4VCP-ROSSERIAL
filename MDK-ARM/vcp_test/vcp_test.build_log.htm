@@ -1,0 +1,115 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: ¦ÌVision V5.23.0.0
+Copyright (C) 2017 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: tom will, ncut, LIC=TA3WF-6570Z-AUV4J-UWWSJ-84HUK-84SBY
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Professional  Version: 5.23
+Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 4 (build 422)
+Assembler:       Armasm.exe V5.06 update 4 (build 422)
+Linker/Locator:  ArmLink.exe V5.06 update 4 (build 422)
+Library Manager: ArmAr.exe V5.06 update 4 (build 422)
+Hex Converter:   FromElf.exe V5.06 update 4 (build 422)
+CPU DLL:         SARMCM3.DLL V5.23
+Dialog DLL:      DCM.DLL V1.15.0.0
+Target DLL:      STLink\ST-LINKIII-KEIL_SWO.dll V2.0.18.0
+Dialog DLL:      TCM.DLL V1.27.0.0
+ 
+<h2>Project:</h2>
+E:\I-RC\Project\MDK\vcp_test\MDK-ARM\vcp_test.uvprojx
+Project File Date:  06/08/2017
+
+<h2>Output:</h2>
+*** Using Compiler 'V5.06 update 4 (build 422)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'vcp_test'
+compiling stm32f4xx_hal_cortex.c...
+compiling stm32f4xx_hal_flash.c...
+compiling stm32f4xx_hal_pcd.c...
+compiling stm32f4xx_hal_gpio.c...
+compiling stm32f4xx_hal_pwr.c...
+compiling stm32f4xx_hal_rcc.c...
+compiling stm32f4xx_hal_flash_ramfunc.c...
+compiling stm32f4xx_hal_pcd_ex.c...
+compiling stm32f4xx_hal_rcc_ex.c...
+compiling stm32f4xx_hal.c...
+compiling stm32f4xx_hal_dma.c...
+compiling stm32f4xx_ll_usb.c...
+compiling stm32f4xx_hal_flash_ex.c...
+compiling stm32f4xx_hal_tim_ex.c...
+compiling stm32f4xx_hal_dma_ex.c...
+compiling system_stm32f4xx.c...
+compiling stm32f4xx_hal_pwr_ex.c...
+compiling stm32f4xx_hal_tim.c...
+compiling usbd_ctlreq.c...
+compiling usbd_ioreq.c...
+compiling usbd_cdc.c...
+compiling usbd_conf.c...
+compiling usbd_core.c...
+compiling usb_device.c...
+compiling main.c...
+../ros_lib/std_msgs/Time.h(56): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return "std_msgs/Time"; };
+../ros_lib/std_msgs/Time.h(57): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "cd7166c74c552c311fbcc2fe5a7bc289"; };
+../ros_lib/rosserial_msgs/TopicInfo.h(124): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return "rosserial_msgs/TopicInfo"; };
+../ros_lib/rosserial_msgs/TopicInfo.h(125): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "0ad51f88fc44892f8c10684077646005"; };
+../ros_lib/rosserial_msgs/Log.h(61): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return "rosserial_msgs/Log"; };
+../ros_lib/rosserial_msgs/Log.h(62): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "11abd731c25933261cd6183bd12d6295"; };
+../ros_lib/rosserial_msgs/RequestParam.h(50): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return REQUESTPARAM; };
+../ros_lib/rosserial_msgs/RequestParam.h(51): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "c1f3d28f1b044c871e6eff2e9fc3c667"; };
+../ros_lib/rosserial_msgs/RequestParam.h(200): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return REQUESTPARAM; };
+../ros_lib/rosserial_msgs/RequestParam.h(201): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "9f0e98bda65981986ddf53afa7a40e49"; };
+../ros_lib/std_msgs/String.h(49): warning:  #1300-D: getType inherits implicit virtual
+      const char * getType(){ return "std_msgs/String"; };
+../ros_lib/std_msgs/String.h(50): warning:  #1300-D: getMD5 inherits implicit virtual
+      const char * getMD5(){ return "992ce8a1687cec8c8bd883ec73ca41d1"; };
+../Src/main.c(121): warning:  #177-D: variable "hello"  was declared but never referenced
+    char hello[13] = "hello world!";
+../Src/main.c: 13 warnings, 0 errors
+compiling usbd_cdc_if.c...
+../Src/usbd_cdc_if.c(361): warning:  #177-D: variable "buffsize"  was declared but never referenced
+  	uint32_t buffsize = 0;
+../Src/usbd_cdc_if.c: 1 warning, 0 errors
+compiling usbd_desc.c...
+compiling stm32f4xx_hal_msp.c...
+compiling stm32f4xx_it.c...
+compiling time.cpp...
+compiling duration.cpp...
+linking...
+Program Size: Code=16042 RO-data=910 RW-data=380 ZI-data=66796  
+FromELF: creating hex file...
+"vcp_test\vcp_test.axf" - 0 Error(s), 14 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: ARM
+                http://www.keil.com/pack/ARM.CMSIS.5.0.1.pack
+                ARM::CMSIS:CORE:5.0.1
+                CMSIS (Cortex Microcontroller Software Interface Standard)
+   * Component: CORE Version: 5.0.1
+
+<h2>Collection of Component include folders:</h2>
+  .\RTE\_vcp_test
+  C:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include
+  C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include
+
+<h2>Collection of Component Files used:</h2>
+
+   * Component: ARM::CMSIS:CORE:5.0.1
+Build Time Elapsed:  00:01:15
+</pre>
+</body>
+</html>
