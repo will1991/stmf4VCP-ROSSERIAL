@@ -10,8 +10,15 @@
     sudo chmod 666 /dev/ttyACM0
     
     rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=115200
-    
+   
 ## DEMO
-    如果连接成功，会有一个/chatter的topic，echo topic输出hello
+    如果连接成功，会有一个/chatter的topic，echo topic输出hello
+    
     rostopic echo /chatter
+    
+    2017/6/11:更新内容：
+* 可以稳定通信
+* 增加一路增量式（正交）编码器（只有A,B两相）读写，舵机控制接口2个
+* 输出/tf信息 ， 
+* 蓝灯闪烁指令：rostopic pub /toggle_led std_msgs/Empty "{}" -r 100 
 # 注意：这个Project还在更新，很不稳定！！！
