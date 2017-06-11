@@ -1,6 +1,0 @@
--c --cpu Cortex-M4.fp -g --apcs=interwork --split_sections -I ../Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc -I ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I ../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -I ../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I ../Drivers/CMSIS/Include -I ../ros_lib -I ../ros_lib/ros -I ../ros_lib/roscpp --cpp;--c99
--I.\RTE\_vcp_test
--IC:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include
--IC:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include
--D__UVISION_VERSION="523" -D_RTE_ -DSTM32F407xx -DUSE_HAL_DRIVER -DSTM32F407xx -D__USE_C99_MATH --C99
--o vcp_test\usbd_ctlreq.o --omf_browse vcp_test\usbd_ctlreq.crf --depend vcp_test\usbd_ctlreq.d --feedback "vcp_test\vcp_test.fed" "../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c"

@@ -290,9 +290,9 @@ memcpy((uint8_t*)(UserTxBufferFS),Buf,*Len);
 UserTxBufPtrIn=*Len;
 UserTxBufPtrOut=0;
  }
+ USBD_CDC_ReceivePacket(&hUsbDeviceFS);
  return (USBD_OK);
 //  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-//  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 //  return (USBD_OK);
   /* USER CODE END 6 */ 
 }
@@ -352,9 +352,10 @@ void Main_loop(void)
 	  data = getch();
  //  UserTxBufPtrOut += 1;
  }
- 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+ 	//USBD_CDC_ReceivePacket(&hUsbDeviceFS);
  }
 }
+int buffersize_ = 0;
 
 int getch(void)
 {
@@ -365,6 +366,11 @@ int getch(void)
  temp = *(UserTxBufferFS+UserTxBufPtrOut);
  UserTxBufPtrOut += 1;  //每次只返回一个字节
   } 
+ else  	
+ {
+	 temp= -1;
+	 USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+ }
   return temp;
 }
 

@@ -5,7 +5,9 @@
 //#include "utils/UsartWithBuffer.h"
 #include "usbd_cdc_if.h"
 #include "main.h"
-extern __int64 MILLISEONS;
+#include "usb_device.h"
+//extern __int64 MILLISEONS;
+extern __IO uint32_t uwTick;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 class STM32Hardware {
@@ -32,7 +34,7 @@ class STM32Hardware {
     int getBaud(){return baud_;}
 
     void init(){
-      //iostream->begin(baud_);
+       MX_USB_DEVICE_Init();//iostream->begin(baud_);
     }
 
     int read(){
@@ -42,10 +44,10 @@ class STM32Hardware {
 
     void write(uint8_t* data, int length)
 		{
-			CDC_Transmit_FS(data,length);
+			while(CDC_Transmit_FS(data,length)!= USBD_OK);
     }
 
-    unsigned long time(){return MILLISEONS;}
+    unsigned long time(){return uwTick;}
 
   protected:
     int* com;
