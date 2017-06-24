@@ -25,5 +25,8 @@ rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=115200
 * 蓝灯闪烁指令：rostopic pub /toggle_led std_msgs/Empty "{}" -r 100 
 ## 编译
  STM32CubeMX 更新到最新版本
+ 
  keil uvsion 5.23
+## QQ 群
+ 636457705
 # 注意：这个Project还在更新，很不稳定！！！
