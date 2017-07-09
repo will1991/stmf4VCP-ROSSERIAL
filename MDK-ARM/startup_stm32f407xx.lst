@@ -85,26 +85,26 @@ ARM Macro Assembler    Page 2
    45 00000000         ;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
    46 00000000         ; </h>
    47 00000000         
-   48 00000000 0000C000 
+   48 00000000 00000400 
                        Stack_Size
-                               EQU              0xC000
+                               EQU              0x400
    49 00000000         
    50 00000000                 AREA             STACK, NOINIT, READWRITE, ALIGN
 =3
    51 00000000         Stack_Mem
                                SPACE            Stack_Size
-   52 0000C000         __initial_sp
-   53 0000C000         
-   54 0000C000         
-   55 0000C000         ; <h> Heap Configuration
-   56 0000C000         ;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
-   57 0000C000         ; </h>
-   58 0000C000         
-   59 0000C000 0000C000 
+   52 00000400         __initial_sp
+   53 00000400         
+   54 00000400         
+   55 00000400         ; <h> Heap Configuration
+   56 00000400         ;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+   57 00000400         ; </h>
+   58 00000400         
+   59 00000400 0000C000 
                        Heap_Size
                                EQU              0xC000
-   60 0000C000         
-   61 0000C000                 AREA             HEAP, NOINIT, READWRITE, ALIGN=
+   60 00000400         
+   61 00000400                 AREA             HEAP, NOINIT, READWRITE, ALIGN=
 3
    62 00000000         __heap_base
    63 00000000         Heap_Mem
@@ -877,12 +877,12 @@ ARM Macro Assembler    Page 14
               00000000 
               00000000 
               00000000 
-              0000C000 
+              00000400 
               0000C000 
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp --apcs=int
 erwork --depend=vcp_test\startup_stm32f407xx.d -ovcp_test\startup_stm32f407xx.o
- -I.\RTE\_vcp_test -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Kei
+ -I.\RTE\_vcp_test -ID:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include -ID:\Kei
 l_v5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Inclu
 de --predefine="__UVISION_VERSION SETA 523" --predefine="_RTE_ SETA 1" --predef
 ine="STM32F407xx SETA 1" --list=startup_stm32f407xx.lst startup_stm32f407xx.s
@@ -909,7 +909,7 @@ Symbol: Stack_Mem
       At line 429 in file startup_stm32f407xx.s
       At line 431 in file startup_stm32f407xx.s
 
-__initial_sp 0000C000
+__initial_sp 00000400
 
 Symbol: __initial_sp
    Definitions
@@ -1940,7 +1940,7 @@ Symbol: Heap_Size
       At line 63 in file startup_stm32f407xx.s
       At line 430 in file startup_stm32f407xx.s
 
-Stack_Size 0000C000
+Stack_Size 00000400
 
 Symbol: Stack_Size
    Definitions

@@ -3,9 +3,15 @@
 
 //#include "config/stm32plus.h"
 //#include "utils/UsartWithBuffer.h"
+#ifdef __cplusplus
+ extern "C" {
+#endif
 #include "usbd_cdc_if.h"
 #include "main.h"
 #include "usb_device.h"
+	 #ifdef __cplusplus
+ }
+#endif
 //extern __int64 MILLISEONS;
 extern __IO uint32_t uwTick;
 extern USBD_HandleTypeDef hUsbDeviceFS;

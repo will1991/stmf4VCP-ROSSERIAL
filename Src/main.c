@@ -46,30 +46,42 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-extern "C"
-{
+#ifdef __cplusplus
+ extern "C" {
+#endif
 #include "main.h"
 #include "stm32f4xx_hal.h"
+#include "tim.h"
 #include "usb_device.h"
-}
+#include "gpio.h"
+#ifdef __cplusplus
+ }
+#endif
 
 /* USER CODE BEGIN Includes */
 #include "ros.h"
+#include "ros/time.h"
 #include "std_msgs/String.h"
-#include "std_msgs/Empty.h"
-#include <ros/time.h>
+#include "std_msgs/Empty.h"	
+#include <nav_msgs/Odometry.h>
+#include "time.h"
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
-#include <ackermann_msgs/AckermannDrive.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
 #include <stdio.h>
 
+float steering_angle = 0;
+extern float encoder_speed ; // r/s
+float after_filter = 0;
+extern	 uint16_t count ;
+extern 	int sum;
+ 
+const float L = 0.26; //m
+ 
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-float steering_angle = 0;
-extern float encoder_speed ; // r/s
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 #ifdef __cplusplus
@@ -79,12 +91,6 @@ extern float encoder_speed ; // r/s
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_TIM1_Init(void);
-static void MX_TIM2_Init(void);
-                                    
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -97,12 +103,19 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
  void messageCb( const std_msgs::Empty& toggle_msg){
   HAL_GPIO_TogglePin(LD6_GPIO_Port,LD6_Pin);   // blink the led
 }
- void cmdCb( const ackermann_msgs::AckermannDrive& cmd_msg){
-  uint32_t move_speed = cmd_msg.speed;
-	 steering_angle = cmd_msg.steering_angle;
+ void cmdCb( const ackermann_msgs::AckermannDriveStamped & cmd_msg){
+   float k = 1.0 ;
+	 float angle_k = 1; 
+	 if(cmd_msg.drive.speed>=0)
+		 k=0.05;
+	 else
+		 k=0.1;
+	 uint32_t move_speed = (cmd_msg.drive.speed*k+1.6) * 84000 ;   //限速1.7
+	 steering_angle = (cmd_msg.drive.steering_angle*angle_k+1.5) * 84000;
 	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,move_speed);  //PA1 move_speed:(0-168000)<->(0-2ms)
 	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_3,steering_angle);  //PA2 steering_angle:(0-168000) <-> (0-2ms)
   HAL_GPIO_TogglePin(LD6_GPIO_Port,LD6_Pin);   // blink the led
+	 steering_angle = cmd_msg.drive.steering_angle; //unit: rad
 }
  #ifdef __cplusplus
  }
@@ -135,6 +148,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
 
@@ -156,31 +170,38 @@ int main(void)
 	ros::NodeHandle nh;
 	std_msgs::String str_msg;
   ros::Publisher chatter("chatter", &str_msg);
+	
   char hello[13] = "hello world!";
 	
-  geometry_msgs::TransformStamped t;
-  tf::TransformBroadcaster broadcaster;
+  tf::TransformBroadcaster odom_broadcaster;
 
 	double x = 0.0;
 	double y = 0.0;
 	double theta = 0;
+	ros::Time temp;
+	float delta_T = 0;
 
-	char base_link[] = "/base_link";
-	char odom[] = "/odom";
+	//char base_link[] = "/base_link";
+//	char odom[] = "/odom";
 	
 	
   ros::Subscriber<std_msgs::Empty> sub("toggle_led", messageCb );
-  ros::Subscriber<ackermann_msgs::AckermannDrive> sub_cmd("/IRC/cmd_vel", cmdCb );
+  ros::Subscriber<ackermann_msgs::AckermannDriveStamped> sub_cmd("/IRC/cmd_vel", cmdCb );
+	nav_msgs::Odometry odom;
+	ros::Publisher odom_pub("odom",&odom);
   nh.initNode();
-	
+
+  nh.advertise(odom_pub);
   nh.advertise(chatter);
   nh.subscribe(sub);
+	nh.subscribe(sub_cmd);
+	odom_broadcaster.init(nh);
 	
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	broadcaster.init(nh);
+	
   while (1)
   {
 
@@ -202,44 +223,69 @@ int main(void)
   chatter.publish(&str_msg);
 	  // drive in a circle
   double dx = encoder_speed;
-	
+		delta_T = nh.now().toSec() - temp.toSec();
+		temp = nh.now();
  // double dtheta = steering_angle;
-  x += cos(theta)*dx*0.1;  //非全相移动平台
-  y += sin(theta)*dx*0.1;
-  //theta += dtheta*0.1;
-	theta = steering_angle;
-  if(theta > 3.14)
-    theta=-3.14;
+  float vx =cos(theta)*dx*delta_T;  //非全向移动平台
+  float vy = sin(theta)*dx*delta_T;
+  float vth = dx/L*tan(steering_angle)*0.1;  //
+	x += vx;
+	y += vy;
+	theta += vth ;
     
-  // tf odom->base_link
-  t.header.frame_id = odom;
-  t.child_frame_id = base_link;
-  
-  t.transform.translation.x = x;
-  t.transform.translation.y = y;
-  
-  t.transform.rotation = tf::createQuaternionFromYaw(theta);
-  t.header.stamp = nh.now();
-  
-  broadcaster.sendTransform(t);
+		
+	//since all odometry is 6DOF we'll need a quaternion created from yaw
+    geometry_msgs::Quaternion odom_quat = tf::createQuaternionFromYaw(theta);
+                                                
+    //first, we'll publish the transform over tf
+    geometry_msgs::TransformStamped odom_trans;
+    odom_trans.header.stamp = temp;
+    odom_trans.header.frame_id = "odom";
+    odom_trans.child_frame_id = "base_link";
 
+    odom_trans.transform.translation.x = x;
+    odom_trans.transform.translation.y = y;
+    odom_trans.transform.translation.z = 0.0;
+    odom_trans.transform.rotation = odom_quat;
+
+    //send the transform
+    odom_broadcaster.sendTransform(odom_trans);
+
+    //next, we'll publish the odometry message over ROS
+  //  nav_msgs::Odometry odom;
+    odom.header.stamp = temp;
+    odom.header.frame_id = "odom";
+
+    //set the position
+    odom.pose.pose.position.x = x;
+    odom.pose.pose.position.y = y;
+    odom.pose.pose.position.z = 0.0;
+    //odom.pose.pose.orientation = odom_quat;
+
+    //set the velocity
+    odom.child_frame_id = "base_link";
+    odom.twist.twist.linear.x = vx;
+    odom.twist.twist.linear.y = vy;
+    odom.twist.twist.angular.z = vth;
+
+    //publish the message
+    odom_pub.publish(&odom);
+
+
+  encoder_speed = 0;
   nh.spinOnce();
 	for(int64_t i = 720000;i!=0;i--);
 
   /* USER CODE END WHILE */
 
-  /* USER CODE BEGIN 3 */
-
-  }
-  /* USER CODE END 3 */
-
 }
-/* USER CODE BEGIN 4 */
+}
+/* USER CODE BEGIN 3 */
 #ifdef __cplusplus
- extern "C" {
-#endif 
-/* USER CODE END 4 */
-	 
+  extern "C" {
+#endif
+/* USER CODE END 3 */
+
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
@@ -295,231 +341,9 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* TIM1 init function */
-static void MX_TIM1_Init(void)
-{
+/* USER CODE BEGIN 4 */
 
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_IC_InitTypeDef sConfigIC;
-
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 167;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 9999;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 0;
-  if (HAL_TIM_IC_Init(&htim1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim1, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* TIM2 init function */
-static void MX_TIM2_Init(void)
-{
-
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1680000;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  HAL_TIM_MspPostInit(&htim2);
-
-}
-
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-     PC3   ------> I2S2_SD
-     PA4   ------> I2S3_WS
-     PA5   ------> SPI1_SCK
-     PA6   ------> SPI1_MISO
-     PA7   ------> SPI1_MOSI
-     PB10   ------> I2S2_CK
-     PC7   ------> I2S3_MCK
-     PC10   ------> I2S3_CK
-     PC12   ------> I2S3_SD
-     PB6   ------> I2C1_SCL
-     PB9   ------> I2C1_SDA
-*/
-static void MX_GPIO_Init(void)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(CS_I2C_SPI_GPIO_Port, CS_I2C_SPI_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin 
-                          |Audio_RST_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : CS_I2C_SPI_Pin */
-  GPIO_InitStruct.Pin = CS_I2C_SPI_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(CS_I2C_SPI_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OTG_FS_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PDM_OUT_Pin */
-  GPIO_InitStruct.Pin = PDM_OUT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-  HAL_GPIO_Init(PDM_OUT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : I2S3_WS_Pin */
-  GPIO_InitStruct.Pin = I2S3_WS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(I2S3_WS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SPI1_SCK_Pin SPI1_MISO_Pin SPI1_MOSI_Pin */
-  GPIO_InitStruct.Pin = SPI1_SCK_Pin|SPI1_MISO_Pin|SPI1_MOSI_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : BOOT1_Pin */
-  GPIO_InitStruct.Pin = BOOT1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PE8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : CLK_IN_Pin */
-  GPIO_InitStruct.Pin = CLK_IN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-  HAL_GPIO_Init(CLK_IN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin 
-                           Audio_RST_Pin */
-  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin 
-                          |Audio_RST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : I2S3_MCK_Pin I2S3_SCK_Pin I2S3_SD_Pin */
-  GPIO_InitStruct.Pin = I2S3_MCK_Pin|I2S3_SCK_Pin|I2S3_SD_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(OTG_FS_OverCurrent_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : Audio_SCL_Pin Audio_SDA_Pin */
-  GPIO_InitStruct.Pin = Audio_SCL_Pin|Audio_SDA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : MEMS_INT2_Pin */
-  GPIO_InitStruct.Pin = MEMS_INT2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MEMS_INT2_GPIO_Port, &GPIO_InitStruct);
-
-}
-
-/* USER CODE BEGIN 5 */
-
-/* USER CODE END 5 */
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -555,11 +379,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 }
 
 #endif
-/* USER CODE BEGIN 7 */
-#ifdef __cplusplus
- }
-#endif 
-/* USER CODE END 7 */
+
 /**
   * @}
   */ 
@@ -567,5 +387,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 /**
   * @}
 */ 
-
+#ifdef __cplusplus
+}
+#endif
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
