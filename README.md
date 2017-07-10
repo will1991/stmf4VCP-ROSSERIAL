@@ -21,15 +21,16 @@ rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=115200
 * 可以稳定通信
 * 增加一路增量式（正交）编码器（只有A,B两相）读写（PE8 PE9），舵机控制接口2个(PA1,PA2)
 * 输出/tf信息 ， 
-* 蓝灯闪烁指令：rostopic pub /toggle_led std_msgs/Empty "{}" -r 100 
+* 蓝灯闪烁指令：rostopic pub /toggle_led std_msgs/Empty "{}" -r 100
+
 2017/7/10:更新内容：
 * 增加topic odom 和tf
 * 限定了电调的输出速度
 * 校准了RCcar的速度
 ## BUG
 * 在cubeMX修改一些配置时候会出现usb识别不到的问题，并且存在大量的编译的错误
-* 解决方案：参考链接：http://www.cnblogs.com/tomwill/p/7059679.html 
-*                   http://www.cnblogs.com/tomwill/p/7146955.html
+* 解决方案：编译错误参考：http://www.cnblogs.com/tomwill/p/7059679.html 
+*          端口识别问题：http://www.cnblogs.com/tomwill/p/7146955.html
 ## 编译
  STM32CubeMX 更新到最新版本
  
