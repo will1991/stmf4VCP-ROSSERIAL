@@ -70,6 +70,8 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <stdio.h>
 
+#define DEBUG_speed 0
+ 
 float steering_angle = 0;
 extern float encoder_speed ; // r/s
 float after_filter = 0;
@@ -175,6 +177,7 @@ int main(void)
 	
   tf::TransformBroadcaster odom_broadcaster;
 
+  double ds_old = 0;
 	double x = 0.0;
 	double y = 0.0;
 	double theta = 0;
@@ -221,17 +224,29 @@ int main(void)
 	
 	str_msg.data = "hello";
   chatter.publish(&str_msg);
-	  // drive in a circle
-  double dx = encoder_speed;
-		delta_T = nh.now().toSec() - temp.toSec();
-		temp = nh.now();
- // double dtheta = steering_angle;
-  float vx =cos(theta)*dx*delta_T;  //非全向移动平台
-  float vy = sin(theta)*dx*delta_T;
-  float vth = dx/L*tan(steering_angle)*0.1;  //
-	x += vx;
-	y += vy;
-	theta += vth ;
+  
+	//speed
+	double ds = encoder_speed*5.192;  //2.04 速度矫正参数
+	ds = 0.9*ds_old + 0.1*ds;
+	ds_old = ds;
+  
+  float vx = cos(theta)*ds;  //非全向移动平台
+  float vy = sin(theta)*ds;
+  float vth = ds/L*tan(steering_angle);  //
+  //position
+	delta_T = nh.now().toSec() - temp.toSec();
+	temp = nh.now();
+	x += vx*delta_T; 
+#if DEBUG_speed
+ if (x>=1.0)	
+	 __HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,1.6*84000);
+ else
+	 __HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,1.68*84000);
+#endif
+	y += vy*delta_T;
+	theta += vth*delta_T ;
+  if (theta>=(2*3.1416))  //anngle from 0 to 2*pi
+		theta = 0;
     
 		
 	//since all odometry is 6DOF we'll need a quaternion created from yaw
